@@ -1,13 +1,13 @@
 """
 Streamlit Web UI for the Multi-Mode Chatbot:
 Tab 1: ⚡ AI Chatbot (Groq API) - Fast LLM Powered
-Tab 2: 🐍 Python Native Chatbot - Upgraded with Local Document RAG + Wikipedia Knowledge
+Tab 2: 🐍 Python Native Chatbot - Wikipedia & Knowledge Powered (No API key needed)
 Run with: streamlit run app.py
 """
 
 import streamlit as st
 from chatbot import get_groq_client, chat, build_messages
-from python_bot import get_smart_python_response, LocalRAGIndex, DEFAULT_LOCAL_DOCS
+from python_bot import get_smart_python_response
 
 # ── Page Configuration ──────────────────────────────────────────────────────
 st.set_page_config(
@@ -60,8 +60,8 @@ client = load_client()
 st.title("🤖 Chatbot Suite")
 st.caption("Select your preferred mode using the tabs below:")
 
-# ── Top Two Tabs: Option 1 (Groq API) vs Option 2 (Python Native RAG + Wiki) ─
-tab_groq, tab_python = st.tabs(["⚡ AI Chatbot (Groq API)", "🐍 Python Native (RAG + Wikipedia)"])
+# ── Top Two Tabs: Option 1 (Groq API) vs Option 2 (Python Native) ───────────
+tab_groq, tab_python = st.tabs(["⚡ AI Chatbot (Groq API)", "🐍 Python Native Chatbot"])
 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 1: Groq API Chatbot
@@ -108,27 +108,11 @@ with tab_groq:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 2: Python Native Chatbot (RAG + Wikipedia Search, No API Key needed)
+# TAB 2: Python Native Chatbot (Wikipedia & Knowledge Base, No API Key)
 # ════════════════════════════════════════════════════════════════════════════
 with tab_python:
-    st.subheader("🐍 Python Native Chatbot (RAG + Wikipedia)")
-    st.caption("Pure Python semantic retrieval (TF-IDF Cosine Similarity) + Live Wikipedia. Zero external API keys needed!")
-
-    # Optional RAG document customizer in expander
-    with st.expander("📄 View or Add Custom Local Knowledge (RAG)"):
-        st.write("Current loaded notes indexed for semantic retrieval:")
-        custom_note = st.text_input("Add a custom fact/note to knowledge base:", placeholder="e.g. Subin is studying Agentic AI course...")
-        if st.button("➕ Add to Knowledge Base") and custom_note:
-            if "custom_docs" not in st.session_state:
-                st.session_state.custom_docs = list(DEFAULT_LOCAL_DOCS)
-            st.session_state.custom_docs.append(custom_note)
-            st.session_state.rag_index = LocalRAGIndex(st.session_state.custom_docs)
-            st.success("Added note to local index!")
-
-    # Initialize RAG index in session state if not set
-    if "rag_index" not in st.session_state:
-        st.session_state.custom_docs = list(DEFAULT_LOCAL_DOCS)
-        st.session_state.rag_index = LocalRAGIndex(st.session_state.custom_docs)
+    st.subheader("🐍 Python Native Chatbot")
+    st.caption("Runs locally with Python logic and live Wikipedia search. Zero external API keys needed!")
 
     # Initialize chat history for Python bot
     if "python_messages" not in st.session_state:
@@ -141,15 +125,15 @@ with tab_python:
             st.markdown(msg["content"])
 
     # Chat input for Python bot
-    if python_user_input := st.chat_input("Ask anything (e.g. 'what is india', 'what is agentic ai', 'who is elon musk', 'calc 50*8')...", key="python_input"):
+    if python_user_input := st.chat_input("Ask Python Bot (e.g. 'what is india', 'who is elon musk', 'what is agentic ai', 'calc 50*8')...", key="python_input"):
         with st.chat_message("user", avatar="🧑‍💻"):
             st.markdown(python_user_input)
 
         st.session_state.python_messages.append({"role": "user", "content": python_user_input})
 
         with st.chat_message("assistant", avatar="🐍"):
-            with st.spinner("Searching knowledge base..."):
-                response = get_smart_python_response(python_user_input, custom_rag=st.session_state.rag_index)
+            with st.spinner("Processing..."):
+                response = get_smart_python_response(python_user_input)
                 st.markdown(response)
 
         st.session_state.python_messages.append({"role": "assistant", "content": response})
