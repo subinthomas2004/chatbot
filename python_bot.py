@@ -1,91 +1,107 @@
 """
-Pure Python Rule-Based Chatbot (No API or external models required).
-Demonstrates core concepts of NLP, intent recognition, regex pattern matching,
-and stateful conversation logic purely in Python standard library.
+Pure Python Knowledge & Rule-Based Chatbot (No external API needed).
+Features:
+- Typo tolerance (handles typos like 'agnetic ai' -> 'agentic ai')
+- Rich built-in knowledge base (Countries, India, AI, Tech, General Knowledge)
+- Math expressions & time evaluation
+- Pattern and keyword based semantic matching
 """
 
 import re
 import random
 import datetime
+import difflib
 
-# Pre-defined intent rules: list of (regex_patterns, list_of_responses)
-RULES: list[tuple[list[str], list[str]]] = [
+# Knowledge Base for direct topic lookups & general knowledge
+KNOWLEDGE_BASE = {
+    "india": (
+        "🇮🇳 **India** (Republic of India) is a country in South Asia. "
+        "It is the world's most populous country, the seventh-largest country by area, "
+        "and the most populous democracy in the world. Capital: New Delhi. National language/official languages: Hindi and English, alongside 22 scheduled languages."
+    ),
+    "agentic ai": (
+        "🤖 **Agentic AI** refers to advanced artificial intelligence systems designed to act autonomously. "
+        "Unlike standard chatbots that only reply with text, an AI Agent can reason, make decisions, plan workflows, use external tools (like search, calculators, databases), and perform tasks step-by-step to achieve a goal."
+    ),
+    "ai agent": (
+        "An **AI Agent** is an autonomous entity that perceives its environment, makes decisions based on goals, maintains memory/state, and takes concrete actions using tools or APIs."
+    ),
+    "python": (
+        "🐍 **Python** is a popular high-level, general-purpose programming language created by Guido van Rossum. "
+        "It is renowned for clean syntax, ease of learning, and powerful libraries in AI, Data Science, Web Development, and Automation."
+    ),
+    "machine learning": (
+        "📊 **Machine Learning (ML)** is a subset of AI where algorithms learn patterns from data and improve their performance on tasks without being explicitly hardcoded."
+    ),
+    "deep learning": (
+        "🧠 **Deep Learning** is a branch of machine learning based on multi-layered artificial neural networks, powering image recognition, speech synthesis, and modern LLMs."
+    ),
+    "groq": (
+        "⚡ **Groq** is an AI infrastructure company famous for its LPU (Language Processing Unit), which runs open-source LLMs at blazing-fast speeds (hundreds of tokens per second)."
+    ),
+    "streamlit": (
+        "🎈 **Streamlit** is an open-source Python framework that lets developers turn data scripts and AI models into interactive web applications with zero front-end (HTML/CSS/JS) code needed."
+    ),
+}
+
+# Conversational & Intent Rules
+RULES = [
     (
-        [r"\b(hi|hello|hey|greetings|howdy)\b"],
+        [r"\b(hi|hello|hey|greetings|howdy|vanakkam|namaste)\b"],
         [
-            "Hello! I am your pure Python rule-based assistant. How can I help you today?",
-            "Hey there! What would you like to explore or discuss?",
-            "Greetings! I'm running directly in Python without any external API."
+            "Hello! I am your local Python chatbot. How can I assist you today?",
+            "Hey! What would you like to know about? Feel free to ask about Python, AI, India, or test out a calculation!",
+            "Greetings! I'm running locally in Python with zero external API dependencies."
         ],
     ),
     (
         [r"\bhow are you\b", r"\bhow('s| is) it going\b"],
         [
-            "I'm functioning smoothly and ready to assist you! How are you doing?",
-            "All systems operational! How can I assist you with Python or AI topics today?"
+            "I'm operating smoothly and ready to assist you! How are you doing?",
+            "Doing great! Ready to answer your questions on AI, Python, or anything you'd like to ask."
         ],
     ),
     (
-        [r"\bwhat is your name\b", r"\bwho are you\b"],
+        [r"\b(who are you|what is your name)\b"],
         [
-            "I am PyBot, a rule-based conversational agent written in pure Python!",
-            "You can call me PyBot. I process your text using regular expressions and rule-matching logic."
-        ],
-    ),
-    (
-        [r"\b(what is|explain) (agentic ai|agent)\b"],
-        [
-            "Agentic AI refers to systems where AI agents perceive their environment, reason, plan actions, use tools, and make decisions autonomously to achieve specified goals.",
-            "An AI Agent is an autonomous entity that observes inputs, maintains state/memory, decides on a sequence of actions, and executes them to accomplish tasks."
-        ],
-    ),
-    (
-        [r"\b(what is|explain) python\b"],
-        [
-            "Python is a high-level, interpreted programming language famous for its readability, vast library ecosystem, and dominance in AI and data science.",
-            "Python is widely used in Machine Learning, Web Development, and Automation due to its simple syntax and strong community."
+            "I am PyBot, a smart Python-native chatbot built using pattern matching, knowledge retrieval, and rule execution!",
+            "You can call me PyBot! I execute fully on Python standard libraries without needing external API keys."
         ],
     ),
     (
         [r"\btime\b", r"\bdate\b", r"\bwhat day is it\b"],
         [
-            lambda: f"Current date and time is: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        ],
-    ),
-    (
-        [r"\b(calc|calculate|what is)\s+([0-9\.\s\+\-\*\/\(\)]+)\b"],
-        [
-            # Dynamically handled in rule_based_response
+            lambda: f"🕒 Current local date and time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         ],
     ),
     (
         [r"\b(joke|tell me a joke)\b"],
         [
-            "Why do programmers prefer dark mode? Because light attracts bugs!",
+            "Why do programmers prefer dark mode? Because light attracts bugs! 🐛",
             "There are 10 types of people in the world: those who understand binary, and those who don't.",
-            "Why did the Python developer wear glasses? Because they couldn't C#!"
+            "Why did the Python programmer get spectacles? Because they couldn't C#! 👓"
         ],
     ),
     (
         [r"\b(thank you|thanks)\b"],
         [
-            "You're very welcome! Let me know if there's anything else I can do.",
-            "Happy to help anytime!"
+            "You're very welcome! Let me know if there's anything else I can answer.",
+            "Glad I could help! 😊"
         ],
     ),
     (
         [r"\b(bye|goodbye|see you|exit)\b"],
         [
-            "Goodbye! Have a great time learning Agentic AI!",
-            "See you later! Keep coding and exploring."
+            "Goodbye! Best of luck with your Agentic AI course!",
+            "Catch you later! Keep building great projects in Python."
         ],
     ),
 ]
 
-FALLBACK_RESPONSES = [
-    "That's an interesting question! Since I'm a rule-based Python bot, I match specific patterns. Try asking about Agentic AI, Python, calculations, time, or tell me 'hello'!",
-    "I haven't been programmed with a rule for that specific phrasing yet. Try asking 'What is Agentic AI?', 'Tell me a joke', or simple math!",
-    "I didn't quite catch that. As a pure Python pattern matcher, I look for key phrases like 'who are you', 'what is python', or 'calculate 15 * 4'."
+FALLBACKS = [
+    "I'm a local Python knowledge bot. Try asking me about: 'What is India?', 'What is Agentic AI?', 'What is Python?', simple math like 'calc 50 * 4', or tell me 'hello'!",
+    "I didn't find an exact match for that, but feel free to ask about countries, Agentic AI, Machine Learning, or math operations!",
+    "That's outside my current rule set. Try asking: 'What is Agentic AI?', 'Who are you?', 'Tell me a joke', or 'What time is it?'"
 ]
 
 
@@ -95,7 +111,7 @@ def evaluate_math(expression: str) -> str | None:
     if re.fullmatch(r"^[0-9\.\s\+\-\*\/\(\)]+$", cleaned):
         try:
             result = eval(cleaned, {"__builtins__": None}, {})
-            return f"Result: {cleaned} = {result}"
+            return f"🔢 **Calculation**: `{cleaned}` = **{result}**"
         except Exception:
             return None
     return None
@@ -103,20 +119,40 @@ def evaluate_math(expression: str) -> str | None:
 
 def get_rule_based_response(user_input: str) -> str:
     """
-    Evaluates user input through regex patterns and returns a suitable response.
+    Evaluates user input through typo correction, knowledge base lookups, 
+    regex patterns, and safe mathematical evaluation.
     """
     text = user_input.strip()
     lower_text = text.lower()
 
-    # Check for direct calculation
-    calc_match = re.search(r"\b(?:calc|calculate|what is)\s+([0-9\.\s\+\-\*\/\(\)]+)\b", lower_text)
+    # 1. Math Calculation check
+    calc_match = re.search(r"\b(?:calc|calculate|what is|compute)\s+([0-9\.\s\+\-\*\/\(\)]+)\b", lower_text)
     if calc_match:
-        expr = calc_match.group(1)
-        res = evaluate_math(expr)
+        res = evaluate_math(calc_match.group(1))
         if res:
             return res
 
-    # Check pre-defined pattern rules
+    # 2. Knowledge Base check with typo tolerance (e.g. 'agnetic ai' -> 'agentic ai')
+    # Strip common leading question prefixes
+    cleaned_query = re.sub(r"^(what is|who is|tell me about|explain|describe)\s+", "", lower_text).strip()
+    cleaned_query = cleaned_query.rstrip("?.!")
+
+    # Check exact match in knowledge base
+    if cleaned_query in KNOWLEDGE_BASE:
+        return KNOWLEDGE_BASE[cleaned_query]
+
+    # Check fuzzy similarity with knowledge base keys (handles typos like 'agnetic ai')
+    best_matches = difflib.get_close_matches(cleaned_query, KNOWLEDGE_BASE.keys(), n=1, cutoff=0.7)
+    if best_matches:
+        matched_key = best_matches[0]
+        return KNOWLEDGE_BASE[matched_key]
+
+    # Keyword search inside knowledge base
+    for key, answer in KNOWLEDGE_BASE.items():
+        if key in lower_text:
+            return answer
+
+    # 3. Conversational Regex Rules
     for patterns, responses in RULES:
         for pattern in patterns:
             if re.search(pattern, lower_text):
@@ -125,4 +161,5 @@ def get_rule_based_response(user_input: str) -> str:
                     return chosen()
                 return chosen
 
-    return random.choice(FALLBACK_RESPONSES)
+    # 4. Fallback response
+    return random.choice(FALLBACKS)
