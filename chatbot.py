@@ -24,10 +24,17 @@ def get_groq_client(api_key: str | None = None) -> Groq:
         ValueError: If no API key is provided or found in environment.
     """
     key = api_key or os.getenv("GROQ_API_KEY")
+    if not key:
+        try:
+            import streamlit as st
+            if "GROQ_API_KEY" in st.secrets:
+                key = st.secrets["GROQ_API_KEY"]
+        except Exception:
+            pass
+
     if not key or key == "your_groq_api_key_here":
         raise ValueError(
-            "Groq API key not found. Please set GROQ_API_KEY in your .env file "
-            "or pass it directly. Get a free key at https://console.groq.com/keys"
+            "Groq API key not found. Please set GROQ_API_KEY in your .env file or Streamlit Cloud Secrets."
         )
     return Groq(api_key=key)
 
